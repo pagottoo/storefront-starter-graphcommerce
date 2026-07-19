@@ -48,7 +48,6 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends tini ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && corepack enable \
     && groupadd -g 10001 app \
     && useradd -u 10001 -g app -s /sbin/nologin -M app
 
@@ -65,4 +64,6 @@ USER 10001
 EXPOSE 3000
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
-CMD ["yarn", "start"]
+# Chama next start direto — evita corepack/yarn no runtime (que precisam de
+# home writable pra cache e não agregam nada em produção).
+CMD ["node_modules/.bin/next", "start"]
