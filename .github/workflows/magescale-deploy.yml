@@ -1,0 +1,70 @@
+name: MageScale storefront deploy
+
+on:
+  push:
+    branches: [main, canary]
+  workflow_dispatch:
+
+concurrency:
+  group: magescale-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GC_MAGENTO_ENDPOINT=${{ vars.GC_MAGENTO_ENDPOINT }}
+            GC_MAGENTO_VERSION=${{ vars.GC_MAGENTO_VERSION }}
+            GC_CANONICAL_BASE_URL=${{ vars.GC_CANONICAL_BASE_URL }}
+            GC_HYGRAPH_ENDPOINT=${{ vars.GC_HYGRAPH_ENDPOINT }}
+            GC_STOREFRONT_0_LOCALE=${{ vars.GC_STOREFRONT_0_LOCALE }}
+            GC_STOREFRONT_0_MAGENTO_STORE_CODE=${{ vars.GC_STOREFRONT_0_MAGENTO_STORE_CODE }}
+
+      - name: Notify MageScale deploy webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.MAGESCALE_WEBHOOK_URL }}
+          WEBHOOK_TOKEN: ${{ secrets.MAGESCALE_WEBHOOK_TOKEN }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+        run: |
+          curl --fail --show-error --silent \
+            -X POST "$WEBHOOK_URL" \
+            -H "X-MageScale-Token: $WEBHOOK_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"image\":\"$IMAGE_REF\",\"commit\":\"$GITHUB_SHA\",\"actor\":\"$GITHUB_ACTOR\"}"
