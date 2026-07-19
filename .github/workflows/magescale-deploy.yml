@@ -64,4 +64,4 @@ jobs:
             -X POST "$WEBHOOK_URL" \
             -H "X-MageScale-Token: $WEBHOOK_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"image\":\"$IMAGE_REF\",\"commit\":\"$GITHUB_SHA\",\"actor\":\"$GITHUB_ACTOR\"}"
+            -d "{\"image\":\"$IMAGE_REF\",\"revision\":\"$GITHUB_SHA\",\"actor\":\"$GITHUB_ACTOR\"}"
