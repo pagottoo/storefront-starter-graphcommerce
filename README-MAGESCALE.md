@@ -8,7 +8,7 @@ This is a fork of `graphcommerce-org/graphcommerce` with three additions:
 |---|---|
 | `Dockerfile` | Multi-stage build, hardened for MageScale BYO PodSpec (non-root UID 10001, port 3000). |
 | `docker-entrypoint.sh` | Maps platform-injected `MAGENTO_GRAPHQL_URL` → GraphCommerce `GC_MAGENTO_ENDPOINT` at container start. |
-| `.github/workflows/magescale-deploy.yml` | Build → push to GHCR → POST deploy webhook. |
+| `.github/workflows/magescale-deploy.yml` | Build → push to Docker Hub → POST deploy webhook. |
 
 ## Quick start
 
@@ -16,9 +16,10 @@ This is a fork of `graphcommerce-org/graphcommerce` with three additions:
 2. **Configure your storefront** — edit `examples/magento-graphcms/graphcommerce.config.ts` (copy from `.example`).
 3. **Set GitHub Actions vars** (Settings → Secrets and variables → Actions):
    - **Variables** (build-time, non-secret): `GC_MAGENTO_ENDPOINT`, `GC_MAGENTO_VERSION`, `GC_CANONICAL_BASE_URL`, `GC_HYGRAPH_ENDPOINT`, `GC_STOREFRONT_0_LOCALE`, `GC_STOREFRONT_0_MAGENTO_STORE_CODE`
-   - **Secrets**: `MAGESCALE_WEBHOOK_URL`, `MAGESCALE_WEBHOOK_TOKEN` (from Console → Environment → Components → Storefront → Deploy)
-4. **Push to `main`** — the workflow builds, publishes to `ghcr.io/<owner>/<repo>`, and calls the MageScale webhook to trigger deploy.
-5. **Set your registry auth in MageScale Console** — Console → Environment → Storefront → Container image → Registry auth (username/token with `read:packages`).
+   - **Variables (optional)**: `DOCKERHUB_IMAGE` — override image name (default: `<DOCKERHUB_USERNAME>/storefront-starter-graphcommerce`)
+   - **Secrets**: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (Docker Hub PAT with Read/Write on the repo), `MAGESCALE_WEBHOOK_URL`, `MAGESCALE_WEBHOOK_TOKEN` (from Console → Environment → Components → Storefront → Deploy)
+4. **Push to `main`** — the workflow builds, publishes to `docker.io/<DOCKERHUB_USERNAME>/storefront-starter-graphcommerce`, and calls the MageScale webhook to trigger deploy.
+5. **Set your registry auth in MageScale Console** — only needed if you keep the image private on Docker Hub. Console → Environment → Storefront → Container image → Registry auth (Docker Hub username + PAT with `Public Repo Read` or `Read`).
 
 ## Env var flow
 
