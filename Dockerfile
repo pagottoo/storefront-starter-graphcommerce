@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY examples/magento-graphcms/ /build/
+# MageScale-specific single-storefront config (overrides upstream .example
+# which ships a 2-storefront config that requires nl_NL store view).
+COPY graphcommerce.config.magescale.ts /build/graphcommerce.config.ts
 
 RUN corepack enable
 
@@ -37,9 +40,7 @@ ENV GC_MAGENTO_ENDPOINT=$GC_MAGENTO_ENDPOINT \
     NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 
-RUN cp graphcommerce.config.ts.example graphcommerce.config.ts && \
-    yarn install && \
-    yarn build
+RUN yarn install && yarn build
 
 # ── runner ──────────────────────────────────────────────────────────────────
 FROM node:${NODE_VERSION}-bookworm-slim AS runner
