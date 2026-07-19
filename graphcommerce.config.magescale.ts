@@ -10,7 +10,11 @@ import type { GraphCommerceConfig } from '@graphcommerce/next-config'
  */
 const config: Partial<GraphCommerceConfig> = {
   robotsAllow: false,
-  limitSsg: false,
+  // limitSsg=true = só home + top-level SSG. false gera catálogo inteiro
+  // (307+ páginas), mas hoje quebra com "Invariant: page wasn't built" em
+  // algum path do sample-data. Cliente que quiser full SSG precisa validar
+  // seu próprio catálogo.
+  limitSsg: true,
   hygraphEndpoint: 'https://eu-central-1.cdn.hygraph.com/content/ckhx7xadya6xs01yxdujt8i80/master',
   magentoEndpoint: 'https://configurator.reachdigital.dev/graphql',
   magentoVersion: 247,
