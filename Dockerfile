@@ -49,7 +49,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends tini ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -g 10001 app \
-    && useradd -u 10001 -g app -s /sbin/nologin -M app
+    && useradd -u 10001 -g app -s /sbin/nologin -M app \
+    && chown app:app /app
 
 COPY --from=builder --chown=app:app /build ./
 COPY --chown=app:app docker-entrypoint.sh /docker-entrypoint.sh
