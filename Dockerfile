@@ -1,21 +1,24 @@
 # syntax=docker/dockerfile:1.7
-# Multi-stage build for GraphCommerce on MageScale platform.
-# Hardened for BYO PodSpec: non-root UID 10001, port 3000, read-only rootfs compatible (writes only to /tmp + /app/.next/cache).
+# Standalone build for the magento-graphcms example — mirrors upstream's
+# periodic-build.yml strategy: extract the example app from the monorepo and
+# install it as if it were a plain Next.js project. Avoids yarn workspaces,
+# husky prepare, and monorepo postinstall gymnastics. Debian base (glibc) has
+# broader native-module prebuilt coverage than alpine (musl).
 
 ARG NODE_VERSION=20
 
 # ── builder ─────────────────────────────────────────────────────────────────
-# No separate deps stage: upstream GraphCommerce gitignores yarn.lock, so `yarn install`
-# has to re-resolve every build anyway. One stage keeps the Dockerfile smaller.
-FROM node:${NODE_VERSION}-alpine AS builder
-WORKDIR /app
-RUN apk add --no-cache git python3 make g++ && corepack enable
-COPY . .
-RUN --mount=type=cache,target=/root/.yarn \
-    yarn install
+FROM node:${NODE_VERSION}-bookworm-slim AS builder
+WORKDIR /build
 
-# GC_MAGENTO_ENDPOINT is required at build time for codegen (schema introspection).
-# Pass via docker build --build-arg or GitHub Action.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git python3 make g++ ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY examples/magento-graphcms/ /build/
+
+RUN corepack enable
+
 ARG GC_MAGENTO_ENDPOINT=https://configurator.reachdigital.dev/graphql
 ARG GC_MAGENTO_VERSION=247
 ARG GC_CANONICAL_BASE_URL=https://example.com
@@ -34,20 +37,21 @@ ENV GC_MAGENTO_ENDPOINT=$GC_MAGENTO_ENDPOINT \
     NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 
-WORKDIR /app/examples/magento-graphcms
 RUN cp graphcommerce.config.ts.example graphcommerce.config.ts && \
+    yarn install && \
     yarn build
 
 # ── runner ──────────────────────────────────────────────────────────────────
-FROM node:${NODE_VERSION}-alpine AS runner
+FROM node:${NODE_VERSION}-bookworm-slim AS runner
 WORKDIR /app
 
-RUN apk add --no-cache tini && \
-    corepack enable && \
-    addgroup -g 10001 -S app && \
-    adduser -u 10001 -S app -G app
+RUN apt-get update && apt-get install -y --no-install-recommends tini ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable \
+    && groupadd -g 10001 app \
+    && useradd -u 10001 -g app -s /sbin/nologin -M app
 
-COPY --from=builder --chown=app:app /app ./
+COPY --from=builder --chown=app:app /build ./
 COPY --chown=app:app docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
@@ -58,7 +62,6 @@ ENV NODE_ENV=production \
 
 USER 10001
 EXPOSE 3000
-WORKDIR /app/examples/magento-graphcms
 
-ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
 CMD ["yarn", "start"]

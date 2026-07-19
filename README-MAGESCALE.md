@@ -38,7 +38,7 @@ MageScale platform ──┴─► auto-injected: MAGENTO_BASE_URL, MAGENTO_GRAP
 
 ## PodSpec requirements
 
-If MageScale enforces `readOnlyRootFilesystem: true`, mount an `emptyDir` at `/app/examples/magento-graphcms/.next/cache` — Next.js writes ISR cache there and will crash on read-only FS.
+If MageScale enforces `readOnlyRootFilesystem: true`, mount an `emptyDir` at `/app/.next/cache` — Next.js writes ISR cache there and will crash on read-only FS.
 
 ## Local dev
 
