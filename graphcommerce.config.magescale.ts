@@ -10,7 +10,7 @@ import type { GraphCommerceConfig } from '@graphcommerce/next-config'
  */
 const config: Partial<GraphCommerceConfig> = {
   robotsAllow: false,
-  limitSsg: true,
+  limitSsg: false,
   hygraphEndpoint: 'https://eu-central-1.cdn.hygraph.com/content/ckhx7xadya6xs01yxdujt8i80/master',
   magentoEndpoint: 'https://configurator.reachdigital.dev/graphql',
   magentoVersion: 247,
